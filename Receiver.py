@@ -66,11 +66,11 @@ def handle_request(client_socket) -> None:
         client_socket.send(ID_XOR)
         change_cc_algorithm(client_socket)
         start = time.time()
-        print("----starting to get the first file----")
+        print("----starting to get the second file----")
         size = client_socket.recv(BUFFER_SIZE)
         data = receive_from(client_socket, int(size.decode()))
         end = time.time()
-        print("----finished receiving the first file----")
+        print("----finished receiving the second file----")
         add_time("second", end - start)
         message = receive_from(client_socket, 1)
         if message == "1":
