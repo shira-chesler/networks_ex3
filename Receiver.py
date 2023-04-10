@@ -1,9 +1,9 @@
 import socket
 import time
 from statistics import mean
-from Shared import receive_from, change_cc_algorithm, CC_ALGORITHM
+from Shared import receive_from, change_cc_algorithm
 
-SERVER_PORT = 60059
+SERVER_PORT = 20059
 BUFFER_SIZE = 1024
 ID_XOR = b'1101000000011'
 
@@ -54,23 +54,23 @@ def handle_request(client_socket) -> None:
     :param client_socket: The socket of the client, through it receiving the data and sending the authentication
     message.
     """
-    # client_socket.setsockopt(socket.IPPROTO_TCP, CC_ALGORITHM, b'tahoe')
+
     while True:
+        size = client_socket.recv(BUFFER_SIZE)
         start = time.time()
         print("----starting to get the first file----")
-        size = client_socket.recv(BUFFER_SIZE)
         data = receive_from(client_socket, int(size.decode()))
         end = time.time()
         print("----finished receiving the first file----")
         add_time("first", end - start)
         client_socket.send(ID_XOR)
         change_cc_algorithm(client_socket)
-        start = time.time()
-        print("----starting to get the first file----")
         size = client_socket.recv(BUFFER_SIZE)
+        start = time.time()
+        print("----starting to get the second file----")
         data = receive_from(client_socket, int(size.decode()))
         end = time.time()
-        print("----finished receiving the first file----")
+        print("----finished receiving the second file----")
         add_time("second", end - start)
         message = receive_from(client_socket, 1)
         if message == "1":
@@ -86,11 +86,11 @@ def handle_request(client_socket) -> None:
 
 def start_server() -> None:
     """
-    Open TCP server socket, binds it to local host with port 60059. Listens to get one client at a time,
+    Open TCP server socket, binds it to local host with port 20059. Listens to get one client at a time,
     then receiving the data the client sends using the handle_request function.
     """
     try:
-        server_socket = socket.socket()
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(('', SERVER_PORT))
         server_socket.listen(1)

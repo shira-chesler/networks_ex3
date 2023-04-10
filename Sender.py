@@ -1,9 +1,9 @@
 import socket
 import time
 
-from Shared import change_cc_algorithm, receive_from, CC_ALGORITHM
+from Shared import change_cc_algorithm, receive_from
 
-SERVER_PORT = 60059
+SERVER_PORT = 20059
 SERVER_NAME = 'localhost'
 BUFFER_SIZE = 1024
 ID_XOR = b'1101000000011'
@@ -20,7 +20,6 @@ def handle_request(client_socket) -> None:
     :param client_socket: the socket client through it connecting to the receiver
     """
     first_file_part, second_file_part = handle_file()
-    # client_socket.setsockopt(socket.IPPROTO_TCP, CC_ALGORITHM, b'tahoe')
     while True:
         client_socket.send(str(len(bytes(first_file_part))).encode())
         bytes_send_first = client_socket.send(bytes(first_file_part))
@@ -49,7 +48,6 @@ def handle_request(client_socket) -> None:
             client_socket.send(exit_message)
             time.sleep(1)
             break
-    # client_socket.close()
 
 
 def handle_file() -> tuple:
@@ -79,7 +77,7 @@ def tcp_connect_to_receiver() -> None:
     """
     print("----------TCP Connection----------")
     try:
-        client_socket = socket.socket()
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((SERVER_NAME, SERVER_PORT))
         handle_request(client_socket)
     except socket.error:
