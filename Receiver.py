@@ -57,6 +57,7 @@ def handle_request(client_socket) -> None:
 
     while True:
         size = client_socket.recv(BUFFER_SIZE)
+        client_socket.send("ok".encode())
         start = time.time()
         print("----starting to get the first file----")
         data = receive_from(client_socket, int(size.decode()))
@@ -66,18 +67,20 @@ def handle_request(client_socket) -> None:
         client_socket.send(ID_XOR)
         change_cc_algorithm(client_socket)
         size = client_socket.recv(BUFFER_SIZE)
+        client_socket.send("ok".encode())
         start = time.time()
         print("----starting to get the second file----")
         data = receive_from(client_socket, int(size.decode()))
         end = time.time()
         print("----finished receiving the second file----")
+        client_socket.send("ok".encode())
         add_time("second", end - start)
-        message = receive_from(client_socket, 1)
-        if message == "1":
+        message = client_socket.recv(1)
+        if message.decode() == "1":
             print_and_calculate_mean()
             print("----Closing connection with client----")
             break
-        elif message == "0":
+        elif message.decode() == "0":
             change_cc_algorithm(client_socket)
             print("----Getting the file again----")
             continue

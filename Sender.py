@@ -22,8 +22,10 @@ def handle_request(client_socket) -> None:
     first_file_part, second_file_part = handle_file()
     while True:
         client_socket.send(str(len(bytes(first_file_part))).encode())
-        bytes_send_first = client_socket.send(bytes(first_file_part))
-        print("---------Number of bytes sent from first file:", bytes_send_first, "------------")
+        received = client_socket.recv(2)
+        if received.decode() == "ok":
+            bytes_send_first = client_socket.send(bytes(first_file_part))
+            print("---------Number of bytes sent from first file:", bytes_send_first, "------------")
         auth = receive_from(client_socket, len(ID_XOR))
         if auth.encode() == ID_XOR:
             print("-----------Authentication succeeded-----------")
@@ -31,23 +33,27 @@ def handle_request(client_socket) -> None:
             print("-----------Authentication did not succeeded-----------")
         change_cc_algorithm(client_socket)
         client_socket.send(str(len(bytes(second_file_part))).encode())
-        bytes_send_second = client_socket.send(bytes(second_file_part))
-        print("---------Number of bytes sent from second file", bytes_send_second, "------------")
+        received = client_socket.recv(2)
+        if received.decode() == "ok":
+            bytes_send_second = client_socket.send(bytes(second_file_part))
+            print("---------Number of bytes sent from second file", bytes_send_second, "------------")
         while True:
             user = input("Enter: do you want to send again? (yes/no) ")
             if user.lower() != "yes" and user.lower() != "no":
                 continue
             break
-        if user.lower() == "yes":
-            again_message = b'0'
-            client_socket.send(again_message)
-            change_cc_algorithm(client_socket)
+        received = client_socket.recv(2)
+        if received.decode() == "ok":
+            if user.lower() == "yes":
+                again_message = b'0'
+                client_socket.send(again_message)
+                change_cc_algorithm(client_socket)
+            if user.lower() == "no":
+                exit_message = b'1'
+                client_socket.send(exit_message)
+                time.sleep(2)
+                break
             continue
-        if user.lower() == "no":
-            exit_message = b'1'
-            client_socket.send(exit_message)
-            time.sleep(1)
-            break
 
 
 def handle_file() -> tuple:
