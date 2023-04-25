@@ -3,55 +3,54 @@ import time
 
 from Shared import change_cc_algorithm, receive_from
 
-SERVER_PORT = 20059
-SERVER_NAME = 'localhost'
+RECEIVER_PORT = 20059
+RECEIVER_NAME = 'localhost'
 BUFFER_SIZE = 1024
 ID_XOR = b'1101000000011'
 
 
-def handle_request(client_socket) -> None:
+def handle_request(sender_socket) -> None:
     """
     This function handles the request. It divides the file into 2 parts using the handle_file function,
     sends the first part of the file, then awaits for authentication.
     Next, it changes the congestion control algorithm from cubic to reno using the change_cc_algorithm function,
     and sends the second part of the file.
-    Afterward, it asks the client - whether to send the file again or not.
-    If not - notifies the receiver that closes the client socket.
-    :param client_socket: the socket client through it connecting to the receiver
+    Afterward, it asks the sender - whether to send the file again or not.
+    If not - notifies the receiver that closes the sender socket.
+    :param sender_socket: the socket sender through it connecting to the receiver
     """
     first_file_part, second_file_part = handle_file()
     while True:
-        client_socket.send(str(len(bytes(first_file_part))).encode())
-        received = client_socket.recv(2)
+        sender_socket.send(str(len(bytes(first_file_part))).encode())
+        received = sender_socket.recv(2)
         if received.decode() == "ok":
-            bytes_send_first = client_socket.send(bytes(first_file_part))
+            bytes_send_first = sender_socket.send(bytes(first_file_part))
             print("---------Number of bytes sent from first file:", bytes_send_first, "------------")
-        auth = receive_from(client_socket, len(ID_XOR))
+        auth = receive_from(sender_socket, len(ID_XOR))
         if auth.encode() == ID_XOR:
             print("-----------Authentication succeeded-----------")
         else:
             print("-----------Authentication did not succeeded-----------")
-        change_cc_algorithm(client_socket)
-        client_socket.send(str(len(bytes(second_file_part))).encode())
-        received = client_socket.recv(2)
+        change_cc_algorithm(sender_socket)
+        sender_socket.send(str(len(bytes(second_file_part))).encode())
+        received = sender_socket.recv(2)
         if received.decode() == "ok":
-            bytes_send_second = client_socket.send(bytes(second_file_part))
+            bytes_send_second = sender_socket.send(bytes(second_file_part))
             print("---------Number of bytes sent from second file", bytes_send_second, "------------")
         while True:
             user = input("Enter: do you want to send again? (yes/no) ")
             if user.lower() != "yes" and user.lower() != "no":
                 continue
             break
-        received = client_socket.recv(2)
+        received = sender_socket.recv(2)
         if received.decode() == "ok":
             if user.lower() == "yes":
                 again_message = b'0'
-                client_socket.send(again_message)
-                change_cc_algorithm(client_socket)
+                sender_socket.send(again_message)
+                change_cc_algorithm(sender_socket)
             if user.lower() == "no":
                 exit_message = b'1'
-                client_socket.send(exit_message)
-                time.sleep(2)
+                sender_socket.send(exit_message)
                 break
             continue
 
@@ -83,11 +82,12 @@ def tcp_connect_to_receiver() -> None:
     """
     print("----------TCP Connection----------")
     try:
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((SERVER_NAME, SERVER_PORT))
-        handle_request(client_socket)
+        sender_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sender_socket.connect((RECEIVER_NAME, RECEIVER_PORT))
+        handle_request(sender_socket)
+        sender_socket.close()
     except socket.error:
-        print("Socket Error")
+        print(f"Socket Error {socket.error}")
         exit(1)
 
 
