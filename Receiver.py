@@ -38,7 +38,7 @@ def print_and_calculate_mean() -> None:
     then prints the average time of each list.
     """
     print("Times of receiving first file, Cubic algorithm: ", times_first_part)
-    print("Times of receiving first file, Reno algorithm: ", times_second_part)
+    print("Times of receiving second file, Reno algorithm: ", times_second_part)
     print("Average time receiving files send by Cubic: ", average(times_first_part), " seconds")
     print("Average time receiving files send by Reno: ", average(times_second_part), " seconds")
 
