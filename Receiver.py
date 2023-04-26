@@ -3,7 +3,7 @@ import time
 from statistics import mean
 from Shared import receive_from, change_cc_algorithm
 
-SERVER_PORT = 20059
+RECEIVER_PORT = 20059
 BUFFER_SIZE = 1024
 ID_XOR = b'1101000000011'
 
@@ -43,66 +43,70 @@ def print_and_calculate_mean() -> None:
     print("Average time receiving files send by Reno: ", average(times_second_part), " seconds")
 
 
-def handle_request(client_socket) -> None:
+def handle_request(sender_socket) -> None:
     """
-    The function handles the requests from the client. Receives the file parts
+    The function handles the requests from the sender. Receives the file parts
     (sending back authentication after receiving the first) and measuring the time it took for each of the file parts
     to arrive.
     it uses the change_cc_algorithm to change the Congestion Control algorithm to suit the Sender.
     The function receives from the Sender both parts of the file again and again until gets an exit message,
-    then it prints the time each file part took to arrive and the mean of the times and closes the client socket.
-    :param client_socket: The socket of the client, through it receiving the data and sending the authentication
+    then it prints the time each file part took to arrive and the mean of the times and closes the sender socket.
+    :param sender_socket: The socket of the sender, through it receiving the data and sending the authentication
     message.
     """
 
     while True:
-        size = client_socket.recv(BUFFER_SIZE)
+        size = sender_socket.recv(BUFFER_SIZE)
+        sender_socket.send("ok".encode())
         start = time.time()
         print("----starting to get the first file----")
-        data = receive_from(client_socket, int(size.decode()))
+        data = receive_from(sender_socket, int(size.decode()))
         end = time.time()
         print("----finished receiving the first file----")
         add_time("first", end - start)
-        client_socket.send(ID_XOR)
-        change_cc_algorithm(client_socket)
-        size = client_socket.recv(BUFFER_SIZE)
+        sender_socket.send(ID_XOR)
+        change_cc_algorithm(sender_socket)
+        size = sender_socket.recv(BUFFER_SIZE)
+        sender_socket.send("ok".encode())
         start = time.time()
         print("----starting to get the second file----")
-        data = receive_from(client_socket, int(size.decode()))
+        data = receive_from(sender_socket, int(size.decode()))
         end = time.time()
         print("----finished receiving the second file----")
+        sender_socket.send("ok".encode())
         add_time("second", end - start)
-        message = receive_from(client_socket, 1)
-        if message == "1":
+        message = sender_socket.recv(1)
+        if message.decode() == "1":
             print_and_calculate_mean()
-            print("----Closing connection with client----")
+            print("----Closing connection with sender----")
             break
-        elif message == "0":
-            change_cc_algorithm(client_socket)
+        elif message.decode() == "0":
+            change_cc_algorithm(sender_socket)
             print("----Getting the file again----")
             continue
-    client_socket.close()  # close the client_socket
 
 
-def start_server() -> None:
+def start_receiver() -> None:
     """
-    Open TCP server socket, binds it to local host with port 20059. Listens to get one client at a time,
-    then receiving the data the client sends using the handle_request function.
+    Open TCP receiver socket, binds it to local host with port 20059. Listens to get one sender at a time,
+    then receiving the data the sender sends using the handle_request function.
     """
     try:
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind(('', SERVER_PORT))
-        server_socket.listen(1)
-        print("-----SERVER IS UP-------")
+        receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        receiver.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        receiver.bind(('', RECEIVER_PORT))
+        receiver.listen(1)
+        print("-----Receiver IS UP-------")
         while True:
-            client_socket, address = server_socket.accept()
-            print(f"-----Client connected. Client address: {address}")
-            handle_request(client_socket)
+            sender_socket, address = receiver.accept()
+            print(f"-----Sender connected. Sender address: {address}")
+            handle_request(sender_socket)
+            receiver.close()
+            break
     except socket.error:
-        print("Socket Error")
+        print(f"Socket Error {socket.error}")
         exit(1)
 
 
 if __name__ == '__main__':
-    start_server()
+    start_receiver()
