@@ -1,5 +1,4 @@
 import socket
-import time
 
 from Shared import change_cc_algorithm, receive_from
 
